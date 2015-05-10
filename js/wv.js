@@ -10,7 +10,7 @@ window.addEventListener(
 );
 
 function golden_fire(){
-    //Cocoon.App.forwardAsync("ctx.clearRect(0,0,canvas.width/2,canvas.height/2);");
+    Cocoon.App.forwardAsync("theGame.loadGoldenFireLoop();",false);
     
     Cocoon.WebView.hide();
     Cocoon.Touch.enable();
