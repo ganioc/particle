@@ -15,3 +15,9 @@ function golden_fire(){
     Cocoon.WebView.hide();
     Cocoon.Touch.enable();
 }
+function rainbow_band(){
+    Cocoon.App.forwardAsync("theGame.loadRainbowBand();",false);
+    
+    Cocoon.WebView.hide();
+    Cocoon.Touch.enable();
+}
