@@ -28,6 +28,9 @@ var theGame = (function(){
         },
         { path:'img/flystepback_50.png',
           name:'flystepback'
+        },
+        { path:'img/waterripple-background.png',
+          name:'waterripple'
         }
     ];
 
@@ -717,6 +720,143 @@ var theGame = (function(){
         };
     }
     // end of rainbowBandLoop
+
+    // begin of waterRippleLoop
+    function waterRippleLoop(){
+        var width = ctx.canvas.width,
+            height = ctx.canvas.height;
+        
+        var x0 = ctx.canvas.width/2 - width/2;
+        var y0 = ctx.canvas.height/2 - height/2;
+        var origin_img = get_image(imgList, 'waterripple');
+        
+        var size = width* height;
+
+        var buffer0 = [], buffer1 = [];
+        var aux, texture;
+
+        for(var i=0; i< size; i++){
+            buffer0.push(0);
+            buffer1.push(0);
+        }
+        
+        function touchstartCallbackWaterRipple(event){
+            
+
+        }
+        function touchmoveCallbackWaterRipple(event){
+
+
+        }
+
+        function disturb(x,y,z){
+            if(x<2 || x> width -2|| y<1 || y> (height -2)){
+                return;
+            }
+            var i = x+ y* width;
+            buffer0[i] += z;
+            buffer0[i-1] -= z;
+
+        }
+
+        ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
+        ctx.drawImage(origin_img,0,0, width, height);
+        texture = ctx.getImageData(0,0,width,height);
+        
+        return {
+            loop: function(td){
+                //ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
+                //ctx.drawImage(origin_img,0,0,width, height);
+                //texture = ctx.getImageData(x0,y0,width,height);
+                var img = ctx.getImageData(0,0,width,height);
+                var data = img.data;
+                var i, x;
+
+                // average cells to make surface more even
+                for(i = width +1; i< size - width -1; i+= 2){
+                    for( x=1; x< width -1; x++, i++){
+                        buffer0[i] =
+                            (buffer0[i]
+                             +buffer0[i+1]
+                             +buffer0[i-1]
+                             +buffer0[i-width]
+                             +buffer0[i+width])/5;
+                    }
+                }
+
+                for(i=width+1;i<size-width-1;i+=2){
+                    for(x=1;x<width-1; x++, i++){
+                        // wave propagation
+                        var waveHeight = (buffer0[i-1]
+                                          +buffer0[i+1]
+                                          +buffer0[i+width]
+                                          +buffer0[i-width])/2 - buffer0[i];
+                        buffer1[i] = waveHeight;
+
+                        //calculate index in the texture with some fake referaction??? what does it mean?
+                        var ti=
+                                i
+                                +Math.floor(
+                                    (buffer1[i-2]
+                                     -waveHeight)*0.08)
+                                +Math.floor(
+                                    (buffer1[i-width]-waveHeight)*0.08
+                                )*width;
+                        //clamping
+                        ti = ti<0?0:ti>size?size:ti;
+                        //some very fake lighting and caustics vased on the wave height and angle
+                        var light = waveHeight*2.0 - buffer1[i-2]*0.6;
+                        var i4 = i*4;
+                        var ti4 = ti*4;
+
+                        //clamping
+                        light = (light<-10)?-10:(light>100)?100:light;
+                        data[i4]=texture.data[ti4] + light;
+                        data[i4+1] = texture.data[ti4 +1] + light;
+                        data[i4 + 2] = texture.data[ti4 +2] + light;
+                        
+                    }
+                }
+                //rain
+                disturb(
+                    Math.floor(Math.random()*width),
+                    Math.floor(Math.random()*height),
+                    Math.random()*10000
+                );
+
+                aux = buffer0;
+                buffer0 = buffer1;
+                buffer1 = aux;
+
+                ctx.putImageData(img, 0, 0);
+                
+                MenuButton.draw();
+            },
+            housekeeping:function(){
+                canvas.removeEventListener(
+                    'touchstart',
+                    touchstartCallbackWaterRipple,
+                    false
+                );
+                canvas.removeEventListener(
+                    'touchmove',
+                    touchmoveCallbackWaterRipple,
+                    false
+                );
+            }
+        };
+    }
+    // end of waterRippleLoop
+
+
+    function funcWrapperLoop(func){
+        return function(){
+            var obj = func();
+            currentGameLoop = createGameLoop(obj.loop,
+                                             obj.housekeeping );
+            start_loop();
+        };
+    }
     
     return {
         pre_init: function(callback){
@@ -729,18 +869,28 @@ var theGame = (function(){
             //window.requestAnimationFrame(currentGameLoop);
             start_loop();
         },
-        loadGoldenFireLoop:function(){
-            var obj = goldenFireLoop();
-            currentGameLoop = createGameLoop(obj.loop,
-                                             obj.housekeeping );
-            start_loop();
-        },
-        loadRainbowBand:function(){
-            var obj = rainbowBandLoop();
-            currentGameLoop = createGameLoop(obj.loop,
-                                             obj.housekeeping);
-            start_loop();
-        }
+        loadGoldenFireLoop:funcWrapperLoop(goldenFireLoop),
+        loadRainbowBand: funcWrapperLoop(rainbowBandLoop),
+        loadWaterRipple: funcWrapperLoop(waterRippleLoop)
+        // loadGoldenFireLoop:function(){
+        //     var obj = goldenFireLoop();
+        //     currentGameLoop = createGameLoop(obj.loop,
+        //                                      obj.housekeeping );
+        //     start_loop();
+        // },
+        // loadRainbowBand:function(){
+        //     var obj = rainbowBandLoop();
+        //     currentGameLoop = createGameLoop(obj.loop,
+        //                                      obj.housekeeping);
+        //     start_loop();
+        // },
+        // loadWaterRipple:function(){
+        //     var obj = waterRippleLoop();
+        //     currentGameLoop = createGameLoop(obj.loop,
+        //                                      obj.housekeeping);
+        //     start_loop();
+        // }
+        
     };
 
 })();

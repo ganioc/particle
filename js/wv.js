@@ -9,15 +9,36 @@ window.addEventListener(
     }
 );
 
-function golden_fire(){
-    Cocoon.App.forwardAsync("theGame.loadGoldenFireLoop();",false);
-    
-    Cocoon.WebView.hide();
-    Cocoon.Touch.enable();
+
+function li_callback(str){
+    return function(){
+        Cocoon.App.forwardAsync(str,false);
+        Cocoon.WebView.hide();
+        Cocoon.Touch.enable();
+    };
 }
-function rainbow_band(){
-    Cocoon.App.forwardAsync("theGame.loadRainbowBand();",false);
+
+var golden_fire = li_callback("theGame.loadGoldenFireLoop();");
+
+var rainbow_band = li_callback("theGame.loadRainbowBand();");
+
+var water_ripple = li_callback("theGame.loadWaterRipple();");
+
+// function golden_fire(){
+//     Cocoon.App.forwardAsync("theGame.loadGoldenFireLoop();",false);
     
-    Cocoon.WebView.hide();
-    Cocoon.Touch.enable();
-}
+//     Cocoon.WebView.hide();
+//     Cocoon.Touch.enable();
+// }
+// function rainbow_band(){
+//     Cocoon.App.forwardAsync("theGame.loadRainbowBand();",false);
+    
+//     Cocoon.WebView.hide();
+//     Cocoon.Touch.enable();
+// }
+// function water_ripple(){
+//     Cocoon.App.forwardAsync("theGame.loadWaterRipple();",false);
+    
+//     Cocoon.WebView.hide();
+//     Cocoon.Touch.enable();
+// }
