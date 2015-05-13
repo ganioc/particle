@@ -726,14 +726,14 @@ var theGame = (function(){
         var width = ctx.canvas.width,
             height = ctx.canvas.height;
         
-        var x0 = ctx.canvas.width/2 - width/2;
-        var y0 = ctx.canvas.height/2 - height/2;
+        // var x0 = ctx.canvas.width/2 - width/2;
+        // var y0 = ctx.canvas.height/2 - height/2;
         var origin_img = get_image(imgList, 'waterripple');
         
         var size = width* height;
 
         var buffer0 = [], buffer1 = [];
-        var aux, texture;
+        var aux, texture, origin_texture;
 
         for(var i=0; i< size; i++){
             buffer0.push(0);
@@ -761,15 +761,34 @@ var theGame = (function(){
 
         ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
         ctx.drawImage(origin_img,0,0, width, height);
-        texture = ctx.getImageData(0,0,width,height);
+        texture = ctx.getImageData(0,0,width,height);// what is on the canvas
+        origin_texture = texture;  // the original color
+
+        var light = 10;
         
         return {
             loop: function(td){
-                //ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
-                //ctx.drawImage(origin_img,0,0,width, height);
-                //texture = ctx.getImageData(x0,y0,width,height);
-                var img = ctx.getImageData(0,0,width,height);
-                var data = img.data;
+
+                console.log(td);
+
+                var pos_start = 100*width*4;
+                // light ++;
+                // if(light > 100)
+                //     light = 10;
+
+                // for(var i=0;i<width;i++){
+                //     texture.data[pos_start + i*4]
+                //         = origin_texture.data[pos_start + i*4] + light;
+                //     texture.data[pos_start + i*4 + 1]
+                //         = origin_texture.data[pos_start + i*4 + 1] + light;
+                //     texture.data[pos_start + i*4 + 2]
+                //         = origin_texture.data[pos_start + i*4 + 2] + light;
+                    
+                // }
+
+
+            //     var img = ctx.getImageData(0,0,width,height);
+            //     var data = img.data;
                 var i, x;
 
                 // average cells to make surface more even
@@ -796,28 +815,28 @@ var theGame = (function(){
                         //calculate index in the texture with some fake referaction??? what does it mean?
                         var ti=
                                 i
-                                +Math.floor(
-                                    (buffer1[i-2]
-                                     -waveHeight)*0.08)
-                                +Math.floor(
-                                    (buffer1[i-width]-waveHeight)*0.08
-                                )*width;
+                                + Math.floor(
+                                    (buffer1[i-2] - waveHeight)*0.08
+                                )
+                                + Math.floor(
+                                    (buffer1[i-width] - waveHeight)*0.08
+                                ) * width;
                         //clamping
                         ti = ti<0?0:ti>size?size:ti;
                         //some very fake lighting and caustics vased on the wave height and angle
                         var light = waveHeight*2.0 - buffer1[i-2]*0.6;
+                        light = (light<-10)?-10:(light>100)?100:light;
+                        
                         var i4 = i*4;
                         var ti4 = ti*4;
 
-                        //clamping
-                        light = (light<-10)?-10:(light>100)?100:light;
-                        data[i4]=texture.data[ti4] + light;
-                        data[i4+1] = texture.data[ti4 +1] + light;
-                        data[i4 + 2] = texture.data[ti4 +2] + light;
+                        texture.data[i4] = origin_texture.data[ti4] + light;
+                        texture.data[i4+1] = origin_texture.data[ti4 +1] + light;
+                        texture.data[i4 + 2] = origin_texture.data[ti4 +2] + light;
                         
                     }
                 }
-                //rain
+                //rain, disturb is on buffer0
                 disturb(
                     Math.floor(Math.random()*width),
                     Math.floor(Math.random()*height),
@@ -828,7 +847,8 @@ var theGame = (function(){
                 buffer0 = buffer1;
                 buffer1 = aux;
 
-                ctx.putImageData(img, 0, 0);
+            //     ctx.putImageData(img, 0, 0);
+                ctx.putImageData(texture, 0 , 0);
                 
                 MenuButton.draw();
             },
