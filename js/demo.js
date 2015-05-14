@@ -721,10 +721,11 @@ var theGame = (function(){
     // begin of waterRippleLoop
     function waterRippleLoop(){
         var width = ctx.canvas.width,
-            height = Math.floor(ctx.canvas.height/2);
+            height = Math.floor(ctx.canvas.height/4);
+
+        var y_top = height;
+        var y_top_num = y_top* width;
         
-        // var x0 = ctx.canvas.width/2 - width/2;
-        // var y0 = ctx.canvas.height/2 - height/2;
         var origin_img = get_image(imgList, 'waterripple');
         
         var size = width* height;
@@ -739,16 +740,17 @@ var theGame = (function(){
         
         function touchstartCallbackWaterRipple(event){
             disturb( event.touches[0].pageX,
-                     event.touches[0].pageY- height/2,15000);
+                     event.touches[0].pageY - y_top,15000);
         }
         function touchmoveCallbackWaterRipple(event){
             disturb( event.touches[0].pageX,
-                     event.touches[0].pageY- height/2, 15000);
+                     event.touches[0].pageY - y_top, 15000);
         }
         function clickCallbackWaterRipple(event){
             console.log('mouse down');
-            
-            disturb(event.pageX, event.pageY-height/2,15000);
+            console.log(event.clientX + ' ' + event.clientY);
+            console.log('page:' + event.pageX + ' ' + event.pageY);
+            disturb(event.clientX, event.clientY- y_top, 15000);
         }
         canvas.addEventListener(
             'touchstart',
@@ -767,31 +769,27 @@ var theGame = (function(){
             false
         );
 
-        function mapY(y){
-            return Math.floor(y- height/2);}
-            
         function disturb(x,y,z){
-
             if(x<2 || x> width -2|| y<1 || y> (height -2)){
                 return;
             }
-            var i = x+ y* width;
+            var i = x+ (y)* width;
             buffer0[i] += z;
             buffer0[i-1] -= z;
 
         }
 
         ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
-        ctx.drawImage(origin_img,0,height/2, width, height);
+        ctx.drawImage(origin_img,0, y_top, width, height);
         //ctx.fillStyle='black';
         //ctx.fillRect(0,0, width, height);
         
-        texture = ctx.getImageData(0,height/2,width,height);// what is on the canvas
-        origin_texture = ctx.getImageData(0,height/2,width,height); // the original color
+        texture = ctx.getImageData(0,y_top,width,height);// what is on the canvas
+        origin_texture = ctx.getImageData(0, y_top,width,height); // the original color
 
         //var light = 10;
         //disturb(100, 100, 10000);
-        var comp_Y = Math.floor(height/2)* width;
+        //var comp_Y = Math.floor(height/2)* width;
         
         return {
             loop: function(td){
@@ -819,14 +817,14 @@ var theGame = (function(){
                         var waveHeight = (buffer0[i-1] + buffer0[i+1] + buffer0[i+width] + buffer0[i-width])/2 -buffer1[i];
                         buffer1[i] = waveHeight;
                         // calculate index in the texture with some fake referaction
-                        var ti = i + Math.floor((buffer1[i-2]-buffer1[i])*0.08)+ Math.floor((buffer1[i-width]-buffer1[i])*0.08)*width;
+                        var ti = i + ~~((buffer1[i-2]-buffer1[i])*0.08)+ ~~((buffer1[i-width]-buffer1[i])*0.08)*width;
                         // clamping
                         ti = ti < 0 ? 0 : ti > size ? size : ti;
                         // some very fake lighting and caustics based on the wave height
                         // and angle
                         var light = buffer1[i]*2.0-buffer1[i-2]*0.6,
-                            i4 = (i + comp_Y)*4,
-                            ti4 = (ti + comp_Y)*4;
+                            i4 = (i )*4,
+                            ti4 = (ti)*4;
                         // clamping
                         light = light < -10 ? -10 : light > 100 ? 100 : light;
                         origin_texture.data[i4] = texture.data[ti4]+light;
@@ -836,15 +834,14 @@ var theGame = (function(){
                     }
                 }
                 if(Math.random()<0.3){
-                    ;
-                    //disturb(Math.floor(Math.random()*width), Math.floor(Math.random()*height), Math.random()*10000);
+                    disturb(Math.floor(Math.random()*width), Math.floor(Math.random()*height), Math.random()*10000);
                 }
                 //swap buffers
                 aux = buffer0;
                 buffer0 = buffer1;
                 buffer1 = aux;
 
-                ctx.putImageData(origin_texture, 0, height/2);
+                ctx.putImageData(origin_texture, 0, y_top);
                 
                 MenuButton.draw();
             },
