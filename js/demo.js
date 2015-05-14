@@ -29,7 +29,7 @@ var theGame = (function(){
         { path:'img/flystepback_50.png',
           name:'flystepback'
         },
-        { path:'img/waterripple-background.png',
+        { path:'img/pebble.png',
           name:'waterripple'
         }
     ];
@@ -129,7 +129,7 @@ var theGame = (function(){
                 //console.log(event);
                 
                 if( !MenuButton.bWithin(event.pageX, event.pageY)){
-                    event.preventDefault();
+                    //event.preventDefault();
                     return;
                 }
                 
@@ -203,19 +203,16 @@ var theGame = (function(){
             
             var td = (timestamp - start)/1000; // in micro second
             start = timestamp;
-            
 
             if(!bGameRunning){
                 console.log('out of game loop');
                 //remove callback , do some housekeeping here
                 callback();
-                
             }
             else{
                 handler(td);
                 window.requestAnimationFrame(currentGameLoop);
             }
-            
         };
     }
 
@@ -724,7 +721,7 @@ var theGame = (function(){
     // begin of waterRippleLoop
     function waterRippleLoop(){
         var width = ctx.canvas.width,
-            height = ctx.canvas.height;
+            height = Math.floor(ctx.canvas.height/2);
         
         // var x0 = ctx.canvas.width/2 - width/2;
         // var y0 = ctx.canvas.height/2 - height/2;
@@ -741,15 +738,40 @@ var theGame = (function(){
         }
         
         function touchstartCallbackWaterRipple(event){
-            
-
+            disturb( event.touches[0].pageX,
+                     event.touches[0].pageY- height/2,15000);
         }
         function touchmoveCallbackWaterRipple(event){
-
-
+            disturb( event.touches[0].pageX,
+                     event.touches[0].pageY- height/2, 15000);
         }
+        function clickCallbackWaterRipple(event){
+            console.log('mouse down');
+            
+            disturb(event.pageX, event.pageY-height/2,15000);
+        }
+        canvas.addEventListener(
+            'touchstart',
+            touchstartCallbackWaterRipple,
+            false
+        );
+        canvas.addEventListener(
+            'touchmove',
+            touchmoveCallbackWaterRipple,
+            false
+            
+        );
+        canvas.addEventListener(
+            'mousedown',
+            clickCallbackWaterRipple,
+            false
+        );
 
+        function mapY(y){
+            return Math.floor(y- height/2);}
+            
         function disturb(x,y,z){
+
             if(x<2 || x> width -2|| y<1 || y> (height -2)){
                 return;
             }
@@ -760,38 +782,26 @@ var theGame = (function(){
         }
 
         ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
-        ctx.drawImage(origin_img,0,0, width, height);
-        texture = ctx.getImageData(0,0,width,height);// what is on the canvas
-        origin_texture = texture;  // the original color
+        ctx.drawImage(origin_img,0,height/2, width, height);
+        //ctx.fillStyle='black';
+        //ctx.fillRect(0,0, width, height);
+        
+        texture = ctx.getImageData(0,height/2,width,height);// what is on the canvas
+        origin_texture = ctx.getImageData(0,height/2,width,height); // the original color
 
-        var light = 10;
+        //var light = 10;
+        //disturb(100, 100, 10000);
+        var comp_Y = Math.floor(height/2)* width;
         
         return {
             loop: function(td){
 
-                console.log(td);
+                //console.log(td);
+                var i, x, Xoffset, Yoffset, Shading;
 
-                var pos_start = 100*width*4;
-                // light ++;
-                // if(light > 100)
-                //     light = 10;
+                ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
 
-                // for(var i=0;i<width;i++){
-                //     texture.data[pos_start + i*4]
-                //         = origin_texture.data[pos_start + i*4] + light;
-                //     texture.data[pos_start + i*4 + 1]
-                //         = origin_texture.data[pos_start + i*4 + 1] + light;
-                //     texture.data[pos_start + i*4 + 2]
-                //         = origin_texture.data[pos_start + i*4 + 2] + light;
-                    
-                // }
-
-
-            //     var img = ctx.getImageData(0,0,width,height);
-            //     var data = img.data;
-                var i, x;
-
-                // average cells to make surface more even
+                //average cells to make surface more even
                 for(i = width +1; i< size - width -1; i+= 2){
                     for( x=1; x< width -1; x++, i++){
                         buffer0[i] =
@@ -803,52 +813,38 @@ var theGame = (function(){
                     }
                 }
 
-                for(i=width+1;i<size-width-1;i+=2){
-                    for(x=1;x<width-1; x++, i++){
+                for(i = width +1; i< size - width -1; i+= 2){
+                    for( x=1; x< width -1; x++, i++){
                         // wave propagation
-                        var waveHeight = (buffer0[i-1]
-                                          +buffer0[i+1]
-                                          +buffer0[i+width]
-                                          +buffer0[i-width])/2 - buffer0[i];
+                        var waveHeight = (buffer0[i-1] + buffer0[i+1] + buffer0[i+width] + buffer0[i-width])/2 -buffer1[i];
                         buffer1[i] = waveHeight;
-
-                        //calculate index in the texture with some fake referaction??? what does it mean?
-                        var ti=
-                                i
-                                + Math.floor(
-                                    (buffer1[i-2] - waveHeight)*0.08
-                                )
-                                + Math.floor(
-                                    (buffer1[i-width] - waveHeight)*0.08
-                                ) * width;
-                        //clamping
-                        ti = ti<0?0:ti>size?size:ti;
-                        //some very fake lighting and caustics vased on the wave height and angle
-                        var light = waveHeight*2.0 - buffer1[i-2]*0.6;
-                        light = (light<-10)?-10:(light>100)?100:light;
-                        
-                        var i4 = i*4;
-                        var ti4 = ti*4;
-
-                        texture.data[i4] = origin_texture.data[ti4] + light;
-                        texture.data[i4+1] = origin_texture.data[ti4 +1] + light;
-                        texture.data[i4 + 2] = origin_texture.data[ti4 +2] + light;
+                        // calculate index in the texture with some fake referaction
+                        var ti = i + Math.floor((buffer1[i-2]-buffer1[i])*0.08)+ Math.floor((buffer1[i-width]-buffer1[i])*0.08)*width;
+                        // clamping
+                        ti = ti < 0 ? 0 : ti > size ? size : ti;
+                        // some very fake lighting and caustics based on the wave height
+                        // and angle
+                        var light = buffer1[i]*2.0-buffer1[i-2]*0.6,
+                            i4 = (i + comp_Y)*4,
+                            ti4 = (ti + comp_Y)*4;
+                        // clamping
+                        light = light < -10 ? -10 : light > 100 ? 100 : light;
+                        origin_texture.data[i4] = texture.data[ti4]+light;
+                        origin_texture.data[i4+1] = texture.data[ti4+1]+light;
+                        origin_texture.data[i4+2] = texture.data[ti4+2]+light;                        
                         
                     }
                 }
-                //rain, disturb is on buffer0
-                disturb(
-                    Math.floor(Math.random()*width),
-                    Math.floor(Math.random()*height),
-                    Math.random()*10000
-                );
-
+                if(Math.random()<0.3){
+                    ;
+                    //disturb(Math.floor(Math.random()*width), Math.floor(Math.random()*height), Math.random()*10000);
+                }
+                //swap buffers
                 aux = buffer0;
                 buffer0 = buffer1;
                 buffer1 = aux;
 
-            //     ctx.putImageData(img, 0, 0);
-                ctx.putImageData(texture, 0 , 0);
+                ctx.putImageData(origin_texture, 0, height/2);
                 
                 MenuButton.draw();
             },
@@ -861,6 +857,11 @@ var theGame = (function(){
                 canvas.removeEventListener(
                     'touchmove',
                     touchmoveCallbackWaterRipple,
+                    false
+                );
+                canvas.removeEventListener(
+                    'mousedown',
+                    clickCallbackWaterRipple,
                     false
                 );
             }
@@ -886,30 +887,11 @@ var theGame = (function(){
         init: function(){
             MenuButton.init();
             currentGameLoop = createGameLoop(splashLoop());
-            //window.requestAnimationFrame(currentGameLoop);
             start_loop();
         },
         loadGoldenFireLoop:funcWrapperLoop(goldenFireLoop),
         loadRainbowBand: funcWrapperLoop(rainbowBandLoop),
         loadWaterRipple: funcWrapperLoop(waterRippleLoop)
-        // loadGoldenFireLoop:function(){
-        //     var obj = goldenFireLoop();
-        //     currentGameLoop = createGameLoop(obj.loop,
-        //                                      obj.housekeeping );
-        //     start_loop();
-        // },
-        // loadRainbowBand:function(){
-        //     var obj = rainbowBandLoop();
-        //     currentGameLoop = createGameLoop(obj.loop,
-        //                                      obj.housekeeping);
-        //     start_loop();
-        // },
-        // loadWaterRipple:function(){
-        //     var obj = waterRippleLoop();
-        //     currentGameLoop = createGameLoop(obj.loop,
-        //                                      obj.housekeeping);
-        //     start_loop();
-        // }
         
     };
 
