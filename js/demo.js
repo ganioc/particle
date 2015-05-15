@@ -728,29 +728,31 @@ var theGame = (function(){
         
         var origin_img = get_image(imgList, 'waterripple');
         
-        var size = width* height;
+        var size = width* height * window.devicePixelRatio* window.devicePixelRatio;
+        //var size = width* height;
 
         var buffer0 = [], buffer1 = [];
         var aux, texture, origin_texture;
-
-        for(var i=0; i< size; i++){
-            buffer0.push(0);
-            buffer1.push(0);
-        }
+        buffer0 = new Array(size);
+        buffer1 = new Array(size);
         
         function touchstartCallbackWaterRipple(event){
-            disturb( event.touches[0].pageX,
-                     event.touches[0].pageY - y_top,15000);
+            disturb( event.touches[0].pageX*window.devicePixelRatio,
+                     (event.touches[0].pageY - y_top)*window.devicePixelRatio,
+                     15000);
         }
         function touchmoveCallbackWaterRipple(event){
-            disturb( event.touches[0].pageX,
-                     event.touches[0].pageY - y_top, 15000);
+            disturb( event.touches[0].pageX*window.devicePixelRatio,
+                     (event.touches[0].pageY - y_top)*window.devicePixelRatio,
+                     15000);
         }
         function clickCallbackWaterRipple(event){
             console.log('mouse down');
             console.log(event.clientX + ' ' + event.clientY);
             console.log('page:' + event.pageX + ' ' + event.pageY);
-            disturb(event.clientX, event.clientY- y_top, 15000);
+            disturb(event.clientX*window.devicePixelRatio,
+                    (event.clientY- y_top)*window.devicePixelRatio,
+                    15000);
         }
         canvas.addEventListener(
             'touchstart',
@@ -780,13 +782,22 @@ var theGame = (function(){
         }
 
         ctx.clearRect(0,0, ctx.canvas.width, ctx.canvas.height);
-        ctx.drawImage(origin_img,0, y_top, width, height);
+        ctx.drawImage(origin_img,0,0,410, 180, 0, 0, width, height);
         //ctx.fillStyle='black';
         //ctx.fillRect(0,0, width, height);
+        if(window.devicePixelRatio === 1){
+            texture = ctx.getImageData(0,0,width,height);// what is on the canvas
+            origin_texture = ctx.getImageData(0, 0,width,height); // the original color
+        }
+        else{
+            texture = ctx.getImageData(0,0,width,height);// what is on the canvas
+            origin_texture = ctx.getImageData(0, 0,width,height); // the original color
+        }
         
-        texture = ctx.getImageData(0,y_top,width,height);// what is on the canvas
-        origin_texture = ctx.getImageData(0, y_top,width,height); // the original color
-
+        console.log('canvas:' + width +':' + height);
+        console.log('texture:' + texture.width +':' + texture.height);
+        console.log('texture data:' + texture.data.length);
+        
         //var light = 10;
         //disturb(100, 100, 10000);
         //var comp_Y = Math.floor(height/2)* width;
@@ -799,9 +810,9 @@ var theGame = (function(){
 
                 ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
 
-                //average cells to make surface more even
-                for(i = width +1; i< size - width -1; i+= 2){
-                    for( x=1; x< width -1; x++, i++){
+ /*               //average cells to make surface more even
+                for(i = width*window.devicePixelRatio +1; i< size - width*window.devicePixelRatio -1; i+= 2){
+                    for( x=1; x< width*window.devicePixelRatio -1; x++, i++){
                         buffer0[i] =
                             (buffer0[i]
                              +buffer0[i+1]
@@ -811,8 +822,8 @@ var theGame = (function(){
                     }
                 }
 
-                for(i = width +1; i< size - width -1; i+= 2){
-                    for( x=1; x< width -1; x++, i++){
+                for(i = width*window.devicePixelRatio +1; i< size - width*window.devicePixelRatio -1; i+= 2){
+                    for( x=1; x< width*window.devicePixelRatio -1; x++, i++){
                         // wave propagation
                         var waveHeight = (buffer0[i-1] + buffer0[i+1] + buffer0[i+width] + buffer0[i-width])/2 -buffer1[i];
                         buffer1[i] = waveHeight;
@@ -834,14 +845,29 @@ var theGame = (function(){
                     }
                 }
                 if(Math.random()<0.3){
-                    disturb(Math.floor(Math.random()*width), Math.floor(Math.random()*height), Math.random()*10000);
+                    disturb(
+                        Math.floor(Math.random()*width*window.devicePixelRatio),
+                        Math.floor(Math.random()*height)*window.devicePixelRatio,
+                        Math.random()*10000);
                 }
-                //swap buffers
-                aux = buffer0;
-                buffer0 = buffer1;
-                buffer1 = aux;
+*/   
+             //swap buffers
+                // aux = buffer0;
+                // buffer0 = buffer1;
+                // buffer1 = aux;
 
-                ctx.putImageData(origin_texture, 0, y_top);
+                //ctx.putImageData(texture, 0,0);
+                //ctx.drawImage(origin_img,0, y_top, width, height);
+
+                if(window.devicePixelRatio === 1){
+                    ctx.putImageData(texture, 0, 0);
+                }
+                else{
+                    //console.log('draw');
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(0,0,width, height);
+                    ctx.putImageData(texture, 0, 0, 0,0, width, height);
+                }
                 
                 MenuButton.draw();
             },
