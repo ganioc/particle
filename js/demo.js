@@ -25,8 +25,9 @@ var theGame = (function(){
     canvasGL.style.display = 'none';
     
     document.body.appendChild(canvas);
-    
-    var ctx= canvas.getContext("2d");
+
+    var gl;     // for webgl
+    var ctx= canvas.getContext("2d"); // for 2d
     var bGameRunning = false;
     var currentGameLoop = null;
 
@@ -81,7 +82,21 @@ var theGame = (function(){
             };
         }
     }
+    function click_start_default(event){
+        console.log('click');
+        //console.log(event);
+        
+        if( !MenuButton.bWithin(event.pageX, event.pageY)){
+            //event.preventDefault();
+            return;
+        }
+        
+        end_loop();
+        
+        Cocoon.App.forwardAsync("Cocoon.WebView.show(0, 0, " + canvas.width * window.devicePixelRatio + "," + canvas.height * window.devicePixelRatio + ");");
 
+        
+    }
     function touch_move_default(event){
         
 
@@ -102,17 +117,6 @@ var theGame = (function(){
         
         end_loop();
 
-        // canvas.addEventListener(
-        //     "touchstart",
-        //     touch_start_default,
-        //     false
-        // );
-        // canvas.addEventListener(
-        //     "touchmove",
-        //     touch_move_default,
-        //     false
-        // );
-        
         Cocoon.App.forwardAsync("Cocoon.WebView.show(0, 0, " + canvas.width * window.devicePixelRatio + "," + canvas.height * window.devicePixelRatio + ");");
         /*
          * Disable the touch events in the CocoonJS side so this event is not called when there is touches over the webview.
@@ -136,20 +140,12 @@ var theGame = (function(){
         );
         canvas.addEventListener(
             "mousedown",
-            function(event) 
-            {
-                console.log('click');
-                //console.log(event);
-                
-                if( !MenuButton.bWithin(event.pageX, event.pageY)){
-                    //event.preventDefault();
-                    return;
-                }
-                
-                end_loop();
-                
-                Cocoon.App.forwardAsync("Cocoon.WebView.show(0, 0, " + canvas.width * window.devicePixelRatio + "," + canvas.height * window.devicePixelRatio + ");");
-            },
+            click_start_default,
+            false
+        );
+        canvasGL.addEventListener(
+            "mousedown",
+            click_start_default,
             false
         );
     }
@@ -907,11 +903,22 @@ var theGame = (function(){
 
     // start of webglTestLoop
     function webglTestLoop(){
-        var gl;
+        var shaderProgram = null,
+            fragmentShader = null,
+            vertexShader = null,
+            vertexPositionAttribute = null,
+            vertexColorAttribute = null,
+            squareVerticesBuffer = null,
+            //squareVerticesColorBuffer = null,
+            mvMatrix = mat4.create(),
+            pMatrix = mat4.create();
+            
         document.getElementById('canvas_2d').style.diaplay = 'none';
         document.getElementById('canvas_3d').style.display = 'block';
         try{
             gl = canvasGL.getContext("experimental-webgl");
+            gl.viewportWidth = canvasGL.width;
+            gl.viewPortHeight = canvasGL.height;
         }
         catch(e){
 
@@ -923,16 +930,124 @@ var theGame = (function(){
         }
         else{
             console.log('exist gl');
-            gl.clearColor(0,0.7,0,1);
+            gl.clearColor(0, 0.4, 0.0, 1);
             gl.clear(gl.COLOR_BUFFER_BIT);
         }
+
+        function makeShader(src,type){
+            var shader = gl.createShader(type);
+            gl.shaderSource(shader,src);
+            gl.compileShader(shader);
+
+            if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){
+                console.log('error compiling shader:' + gl.getShaderInfoLog(shader));
+            }
+            return shader;
+        }
+
+        function attachShaders(){
+            gl.attachShader(shaderProgram,vertexShader);
+            gl.attachShader(shaderProgram, fragmentShader);
+            gl.linkProgram( shaderProgram);
+
+            if( !gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)){
+                console.log('Unable to initialize the shader program.');
+            }
+        }
+
+        function createShaderProgram(){
+            shaderProgram = gl.createProgram();
+            attachShaders();
+
+            gl.useProgram(shaderProgram);
+        }
+
+        function setupShaders(fragmentShaderSRC, vertexShaderSRC){
+            fragmentShader = makeShader(fragmentShaderSRC,gl.FRAGMENT_SHADER);
+            vertexShader = makeShader(vertexShaderSRC, gl.VERTEX_SHADER);
+            createShaderProgram();
+        }
+
+        function initShaders(){
+            var fragmentShaderSRC = null;
+            var vertexShaderSRC = null;
+            fragmentShaderSRC = $('#shader-fs').html();
+            vertexShaderSRC = $('#shader-vs').html();
+            setupShaders(fragmentShaderSRC, vertexShaderSRC);
+        }
+
+        function getMatrixUniforms(){
+            shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, 'uPMatrix');
+            shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, 'uMVMatrix');
+        }
+
+        function getVertexAttributes(){
+            vertexPositionAttribute = gl.getAttribLocation(shaderProgram, 'aVertexPosition');
+            gl.enableVertexAttribArray(vertexPositionAttribute);
+            vertexColorAttribute = gl.getAttribLocation(shaderProgram, 'aVertexColor');
+            gl.enableVertexAttribArray(vertexColorAttribute);
+        }
+
+        function initBuffers(){
+            squareVerticesBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesBuffer);
+
+            var vertices = [
+                1.0, 1.0, 0.0,
+                    -1.0, 1.0, 0.0,
+                1.0, -1.0, 0.0,
+                    -1.0, -1.0, 0.0
+            ];
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+            var colors = [
+                1.0, 1.0, 1.0, 1.0, //white
+                0.05, 0.05, 0.7, 1.0, // dark blue
+                0.0, 1.0, 1.0, 1.0, // cyan
+                0.0, 0.0, 1.0, 1.0 // blue
+            ];
+            squareVerticesColorBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesColorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        }
+
+        function setMatrixUniforms(){
+            gl.uniformMatrix4fv( shaderProgram.pMatrixUniform, false, pMatrix);
+            gl.uniformMatrix4fv( shaderProgram.mvMatrixUniform, false, mvMatrix);
+        }
+
+        function drawScene(){
+            gl.viewport(0, 0, gl.viewportWidth, gl.viewPortHeight);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            mat4.perspective(45, gl.viewportWidth/gl.viewPortHeight, 0.1, 100.0, pMatrix);
+            mat4.identity(mvMatrix);
+            mat4.translate(mvMatrix, [0, 0.0, -7.0]);
+
+            setMatrixUniforms();
+            gl.bindBuffer( gl.ARRAY_BUFFER, squareVerticesBuffer);
+            gl.vertexAttribPointer( vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesColorBuffer);
+            gl.vertexAttribPointer( vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+            gl.drawArrays( gl.TRIANGLE_STRIP, 0, 4);
+        }
+        function executeProgram(){
+            getMatrixUniforms();
+            getVertexAttributes();
+
+            initBuffers();
+            drawScene();
+        }
+        
+        initShaders();
+        executeProgram();
         
         return {
             loop:function(td){
-                gl.clearColor(0,0.3,0,1);
-                gl.clear(gl.COLOR_BUFFER_BIT);
-                //ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
-                MenuButton.draw();
+                // gl.clearColor(0.3,0.3,0,1);
+                // gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+                
             },
             housekeeping: function(){
                 document.getElementById('canvas_2d').style.diaplay = 'block';

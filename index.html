@@ -5,12 +5,37 @@
     <style>
       body { margin: 0; padding: 0; display: block; overflow: hidden; background:black;}
     </style>
+
   </head>
   <body>
     <script src = "js/underscore.js"></script>
+    <script src = "js/gl-matrix.js"></script>
     <!-- particles.js is a small lib from book most wanted -->
+    <script src ="js/jquery-1.11.2.js" ></script>
     <script src = "js/particles.js"></script>
     <script src = "js/cocoon.js"></script>
+
+    <script id="shader-vs" type="x-shader/x-vertex">
+      attribute vec3 aVertexPosition;
+      attribute vec4 aVertexColor;
+      
+      uniform mat4 uMVMatrix;
+      uniform mat4 uPMatrix;
+      
+      varying highp vec4 vColor;  
+      
+      void main(void) {
+          gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+          vColor = aVertexColor;  
+      }
+    </script>
+    <script id="shader-fs" type="x-shader/x-fragment">
+      varying highp vec4 vColor;  
+      
+      void main(void) {
+          gl_FragColor = vColor;  
+      }
+    </script>
     <script src = "js/demo.js"></script>
     <script>
       Cocoon.App.WebView.on("load",{
@@ -24,5 +49,6 @@
       });
       Cocoon.App.loadInTheWebView("WV.html");
     </script>
+
   </body>
 </html>
