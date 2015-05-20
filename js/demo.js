@@ -12,7 +12,20 @@ var theGame = (function(){
     var dpr = window.devicePixelRatio;
     canvas.width = window.innerWidth ;
     canvas.height = window.innerHeight;
+    canvas.id = 'canvas_2d';
+
+
+    var canvasGL = document.createElement(navigator.isCocoonJS ? 'screencanvas' : 'canvas');
+    canvasGL.width = window.innerWidth ;
+    canvasGL.height = window.innerHeight;
+    canvasGL.id = 'canvas_3d';
+    
+    document.body.appendChild(canvasGL);
+
+    canvasGL.style.display = 'none';
+    
     document.body.appendChild(canvas);
+    
     var ctx= canvas.getContext("2d");
     var bGameRunning = false;
     var currentGameLoop = null;
@@ -895,30 +908,35 @@ var theGame = (function(){
     // start of webglTestLoop
     function webglTestLoop(){
         var gl;
+        document.getElementById('canvas_2d').style.diaplay = 'none';
+        document.getElementById('canvas_3d').style.display = 'block';
         try{
-            gl = canvas.getContext("experimental-webgl");
+            gl = canvasGL.getContext("experimental-webgl");
         }
         catch(e){
 
-            alert("webgl init fail.");
+            console.log("webgl init fail.");
         }
 
         if(!gl){
             console.log('no gl.');
         }
         else{
+            console.log('exist gl');
             gl.clearColor(0,0.7,0,1);
             gl.clear(gl.COLOR_BUFFER_BIT);
         }
         
         return {
             loop:function(td){
-                
-                ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+                gl.clearColor(0,0.3,0,1);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                //ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
                 MenuButton.draw();
             },
             housekeeping: function(){
-                ;
+                document.getElementById('canvas_2d').style.diaplay = 'block';
+                document.getElementById('canvas_3d').style.display = 'none';
             }
         };
 
