@@ -866,7 +866,7 @@ var theGame = (function(){
                     //console.log('draw');
                     ctx.fillStyle = 'red';
                     ctx.fillRect(0,0,width, height);
-                    ctx.putImageData(texture, 0, 0, 0,0, width, height);
+                    ctx.putImageData(texture, 0,0);
                 }
                 
                 MenuButton.draw();
@@ -892,7 +892,38 @@ var theGame = (function(){
     }
     // end of waterRippleLoop
 
+    // start of webglTestLoop
+    function webglTestLoop(){
+        var gl;
+        try{
+            gl = canvas.getContext("experimental-webgl");
+        }
+        catch(e){
 
+            alert("webgl init fail.");
+        }
+
+        if(!gl){
+            console.log('no gl.');
+        }
+        else{
+            gl.clearColor(0,0.7,0,1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+        
+        return {
+            loop:function(td){
+                
+                ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+                MenuButton.draw();
+            },
+            housekeeping: function(){
+                ;
+            }
+        };
+
+    }
+    
     function funcWrapperLoop(func){
         return function(){
             var obj = func();
@@ -914,8 +945,8 @@ var theGame = (function(){
         },
         loadGoldenFireLoop:funcWrapperLoop(goldenFireLoop),
         loadRainbowBand: funcWrapperLoop(rainbowBandLoop),
-        loadWaterRipple: funcWrapperLoop(waterRippleLoop)
-        
+        loadWaterRipple: funcWrapperLoop(waterRippleLoop),
+        loadWebglTest : funcWrapperLoop(webglTestLoop)
     };
 
 })();

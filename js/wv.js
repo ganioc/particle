@@ -24,6 +24,9 @@ var rainbow_band = li_callback("theGame.loadRainbowBand();");
 
 var water_ripple = li_callback("theGame.loadWaterRipple();");
 
+var webgl_run = li_callback("theGame.loadWebglTest();");
+
+
 // function golden_fire(){
 //     Cocoon.App.forwardAsync("theGame.loadGoldenFireLoop();",false);
     
