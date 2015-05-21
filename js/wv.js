@@ -28,21 +28,3 @@ var webgl_run = li_callback("theGame.loadWebglTest();");
 
 var webgl_rotate_run = li_callback("theGame.loadWebglRotateTest();");
 
-// function golden_fire(){
-//     Cocoon.App.forwardAsync("theGame.loadGoldenFireLoop();",false);
-    
-//     Cocoon.WebView.hide();
-//     Cocoon.Touch.enable();
-// }
-// function rainbow_band(){
-//     Cocoon.App.forwardAsync("theGame.loadRainbowBand();",false);
-    
-//     Cocoon.WebView.hide();
-//     Cocoon.Touch.enable();
-// }
-// function water_ripple(){
-//     Cocoon.App.forwardAsync("theGame.loadWaterRipple();",false);
-    
-//     Cocoon.WebView.hide();
-//     Cocoon.Touch.enable();
-// }
