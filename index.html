@@ -9,9 +9,11 @@
   </head>
   <body>
     <script src = "js/underscore.js"></script>
-    <script src = "js/gl-matrix.js"></script>
-    <!-- particles.js is a small lib from book most wanted -->
     <script src ="js/jquery-1.11.2.js" ></script>
+    <!-- <script src = "js/gl-matrix-min-1.0.1.js"></script> -->
+    <script src = "js/gl-matrix-2.2.2.js">< /script>
+    <!-- particles.js is a small lib from book most wanted -->
+
     <script src = "js/particles.js"></script>
     <script src = "js/cocoon.js"></script>
 
@@ -36,7 +38,7 @@
           gl_FragColor = vColor;  
       }
     </script>
-    <script src = "js/demo.js"></script>
+
     <script>
       Cocoon.App.WebView.on("load",{
       success : function(){
@@ -49,6 +51,6 @@
       });
       Cocoon.App.loadInTheWebView("WV.html");
     </script>
-
+    <script src = "js/demo.js"></script>
   </body>
 </html>

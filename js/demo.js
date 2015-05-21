@@ -151,6 +151,39 @@ var theGame = (function(){
     }
     // end of init_canvas
 
+    function init_gl(){
+        try{
+            gl = canvasGL.getContext("experimental-webgl");
+            gl.viewportWidth = canvasGL.width;
+            gl.viewPortHeight = canvasGL.height;
+        }
+        catch(e){
+            console.log("webgl init fail.");
+        }
+
+        if(!gl){
+            console.log('no gl.');
+        }
+        else{
+            console.log('exist gl');
+            gl.clearColor(0.4, 0.5, 0.9, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.enable( gl.DEPTH_TEST);
+        }
+    }
+
+    function makeShader(src, type){
+        var shader = gl.createShader(type);
+        gl.shaderSource(shader, src);            
+        gl.compileShader(shader);  
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {  
+            alert("Error compiling shader: " + gl.getShaderInfoLog(shader));  
+        }  
+        return shader;
+    }
+
+    
     // control, menu_button
     var MenuButton = (
         function(){
@@ -909,30 +942,33 @@ var theGame = (function(){
             vertexPositionAttribute = null,
             vertexColorAttribute = null,
             squareVerticesBuffer = null,
-            //squareVerticesColorBuffer = null,
+            squareVerticesColorBuffer = null,
             mvMatrix = mat4.create(),
-            pMatrix = mat4.create();
+            pMatrix = mat4.create(),
+            translation = vec3.create();
             
         document.getElementById('canvas_2d').style.diaplay = 'none';
         document.getElementById('canvas_3d').style.display = 'block';
-        try{
-            gl = canvasGL.getContext("experimental-webgl");
-            gl.viewportWidth = canvasGL.width;
-            gl.viewPortHeight = canvasGL.height;
-        }
-        catch(e){
+        // try{
+        //     gl = canvasGL.getContext("experimental-webgl");
+        //     gl.viewportWidth = canvasGL.width;
+        //     gl.viewPortHeight = canvasGL.height;
+        // }
+        // catch(e){
 
-            console.log("webgl init fail.");
-        }
+        //     console.log("webgl init fail.");
+        // }
 
-        if(!gl){
-            console.log('no gl.');
-        }
-        else{
-            console.log('exist gl');
-            gl.clearColor(0, 0.4, 0.0, 1);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-        }
+        // if(!gl){
+        //     console.log('no gl.');
+        // }
+        // else{
+        //     console.log('exist gl');
+        //     gl.clearColor(0, 0.4, 0.0, 1);
+        //     gl.clear(gl.COLOR_BUFFER_BIT);
+        //     gl.enable( gl.DEPTH_TEST);
+        // }
+        init_gl();
 
         function makeShader(src,type){
             var shader = gl.createShader(type);
@@ -1001,7 +1037,7 @@ var theGame = (function(){
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
             var colors = [
                 1.0, 1.0, 1.0, 1.0, //white
-                0.05, 0.05, 0.7, 1.0, // dark blue
+                0.0, 0.0, 1.0, 1.0, // dark blue
                 0.0, 1.0, 1.0, 1.0, // cyan
                 0.0, 0.0, 1.0, 1.0 // blue
             ];
@@ -1017,11 +1053,17 @@ var theGame = (function(){
 
         function drawScene(){
             gl.viewport(0, 0, gl.viewportWidth, gl.viewPortHeight);
+            gl.clearColor(0, 0 , 0.8, 1);
             gl.clear(gl.COLOR_BUFFER_BIT);
 
-            mat4.perspective(45, gl.viewportWidth/gl.viewPortHeight, 0.1, 100.0, pMatrix);
+            //different from gl-matrix 1.0
+            mat4.perspective(pMatrix,45, gl.viewportWidth/gl.viewPortHeight, 0.1, 100.0);
+
             mat4.identity(mvMatrix);
-            mat4.translate(mvMatrix, [0, 0.0, -7.0]);
+
+            //different from gl-matrix 1.0
+            vec3.set(translation, -0.0, -0.0, -10.0);
+            mat4.translate(mvMatrix, mvMatrix, translation);
 
             setMatrixUniforms();
             gl.bindBuffer( gl.ARRAY_BUFFER, squareVerticesBuffer);
@@ -1043,9 +1085,6 @@ var theGame = (function(){
         
         return {
             loop:function(td){
-                // gl.clearColor(0.3,0.3,0,1);
-                // gl.clear(gl.COLOR_BUFFER_BIT);
-
 
                 
             },
@@ -1056,7 +1095,214 @@ var theGame = (function(){
         };
 
     }
-    
+
+    function webglRotate(){
+        var  shaderProgram = null,
+            fragmentShader = null,
+            vertexShader = null,
+            vertexPositionAttribute = null,
+            vertexColorAttribute = null,
+            octahedronVertexPositionBuffer,
+            octahedronVertexColorBuffer,
+            octahedronVertexIndexBuffer,
+            mvMatrix = mat4.create(),
+            pMatrix = mat4.create(),
+            paused = false,
+            height = 1.41,
+            rotationRadians = 0.0,
+            rotationVector = [1.0, 1.0, 1.0], 
+            rotationIncrement = 0,
+            translationAngle = 0,
+            x = 0,
+            y = 0,
+            z = 0,
+            vertices = [],
+            colors = [],
+            translation = vec3.create();
+
+        function initShaders(fs_name, vs_name){
+            var fragmentShaderSRC = null;
+            var vertexShaderSRC = null;
+            fragmentShaderSRC = $('#'+ fs_name).html();
+            vertexShaderSRC = $('#' + vs_name).html();
+            //setupShaders(fragmentShaderSRC, vertexShaderSRC);
+
+            fragmentShader= makeShader(fragmentShaderSRC, gl.FRAGMENT_SHADER);
+            vertexShader = makeShader(vertexShaderSRC, gl.VERTEX_SHADER);
+        
+            shaderProgram = gl.createProgram();  
+            //attachShaders();
+            gl.attachShader(shaderProgram, vertexShader);  
+            gl.attachShader(shaderProgram, fragmentShader);  
+            gl.linkProgram(shaderProgram);  
+        
+            if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {  
+                console.log("Unable to initialize the shader program.");  
+            }  
+
+            gl.useProgram(shaderProgram);  
+            
+        }
+
+        function executeProgram(){
+            shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+            shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+            vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");                          
+            gl.enableVertexAttribArray(vertexPositionAttribute);  
+            
+            vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+            gl.enableVertexAttribArray(vertexColorAttribute);
+
+            initBuffers();
+            
+        }
+        function initBuffers(){
+            octahedronVertexPositionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, octahedronVertexPositionBuffer);
+            vertices = [
+                // top faces
+                0.0, height, 0.0,
+                1.0, 0.0, 1.0,
+                    -1.0, 0.0, 1.0,
+                
+                0.0, height, 0.0,
+                1.0, 0.0, -1.0,
+                    -1.0, 0.0, -1.0,
+                
+                0.0, height, 0.0,
+                1.0, 0.0, 1.0,
+                1.0,  0.0, -1.0,
+
+                0.0, height,  0.0,
+                    -1.0, 0.0,  1.0,
+                    -1.0,  0.0,  -1.0,
+
+                //bottom faces
+                0.0, -height, 0.0,
+                1.0, 0.0, 1.0,
+                    -1.0, 0.0, 1.0,
+
+                0.0, -height, 0.0,
+                1.0, 0.0, -1.0,
+                    -1.0, 0.0, -1.0,
+                
+                0.0, -height, 0.0,
+                1.0, 0.0, 1.0,
+                1.0,  0.0, -1.0,
+
+                0.0, -height,  0.0,
+                    -1.0, 0.0,  1.0,
+                    -1.0,  0.0,  -1.0
+            ];
+
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+            octahedronVertexPositionBuffer.itemSize = 3;
+            octahedronVertexPositionBuffer.numItems = 24;
+
+            colors = [
+                [1.0, 0.0, 0.0, 1.0], // red
+                [0.0, 1.0, 0.0, 1.0], // green
+                [0.0, 0.0, 1.0, 1.0], // blue
+                [1.0, 1.0, 0.0, 1.0], // yellow
+                   
+                [1.0, 1.0, 1.0, 1.0], // white
+                [0.0, 0.0, 0.0, 1.0], // black
+                [1.0, 0.0, 1.0, 1.0], // magenta
+                [0.0, 1.0, 1.0, 1.0]  // cyan
+                ];
+            var unpackedColors = [];
+            //8 colors by 4 channels - rgba
+            for(var i=0; i < 8; ++i){
+                for(var k=0; k < 3; ++k){
+                    var color = colors[i];
+                    unpackedColors = unpackedColors.concat(color);
+                }
+            }
+            
+            octahedronVertexColorBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, octahedronVertexColorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(unpackedColors), gl.STATIC_DRAW);
+            
+            octahedronVertexColorBuffer.itemSize = 4;
+            octahedronVertexColorBuffer.numItems = 24;
+            
+            var octahedronVertexIndices = [
+                //top
+                0, 1, 2,      3, 4, 5,    
+                6, 7, 8,      9, 10, 11,    
+                //bottom
+                12, 13, 14,   15, 16, 17,
+                18, 19, 20,   21, 22, 23
+            ];
+            
+            octahedronVertexIndexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, octahedronVertexIndexBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(octahedronVertexIndices), gl.STATIC_DRAW);
+            octahedronVertexIndexBuffer.itemSize = 1;
+            octahedronVertexIndexBuffer.numItems = 24;
+            
+        }
+        
+        init_gl();
+        initShaders('shader-fs','shader-vs' );
+        executeProgram();
+
+        
+        document.getElementById('canvas_2d').style.diaplay = 'none';
+        document.getElementById('canvas_3d').style.display = 'block';
+
+        
+        return {
+            loop:function(td){
+                // draw scene
+                gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);  
+                    
+                mat4.perspective(pMatrix,45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
+
+                mat4.identity(mvMatrix);
+                
+                //mat4.translate(mvMatrix, [3*x, y, -12.0 + 5*z]);
+                //vec3.set(translation, 3*x, y, -12.0 + 5*z);
+                vec3.set(translation, 0, 0 , -10);
+                mat4.translate(mvMatrix, mvMatrix, translation);
+                
+                if(!paused){    
+                    x = Math.cos(translationAngle);
+                    y = x;
+                    z = Math.sin(translationAngle);
+                    rotationRadians = rotationIncrement/(180/Math.PI);
+                    
+                    rotationIncrement++; 
+                    translationAngle += .01;
+                }
+                mat4.rotate(mvMatrix, mvMatrix,rotationRadians, rotationVector);
+                    
+                //setMatrixUniforms();
+                gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+                gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, octahedronVertexPositionBuffer);  
+                gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);  
+                    
+                gl.bindBuffer(gl.ARRAY_BUFFER, octahedronVertexColorBuffer);
+                gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+                    
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, octahedronVertexIndexBuffer);
+                gl.drawElements(gl.TRIANGLES, octahedronVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+                
+                
+            },
+            housekeeping: function(){
+                document.getElementById('canvas_2d').style.diaplay = 'block';
+                document.getElementById('canvas_3d').style.display = 'none';
+            }
+        };
+
+
+    }
+
+    ////////////////////////////
     function funcWrapperLoop(func){
         return function(){
             var obj = func();
@@ -1079,7 +1325,9 @@ var theGame = (function(){
         loadGoldenFireLoop:funcWrapperLoop(goldenFireLoop),
         loadRainbowBand: funcWrapperLoop(rainbowBandLoop),
         loadWaterRipple: funcWrapperLoop(waterRippleLoop),
-        loadWebglTest : funcWrapperLoop(webglTestLoop)
+        loadWebglTest : funcWrapperLoop(webglTestLoop),
+        loadWebglRotateTest : funcWrapperLoop(webglRotate)
+        
     };
 
 })();
