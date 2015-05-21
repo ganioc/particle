@@ -1037,9 +1037,9 @@ var theGame = (function(){
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
             var colors = [
                 1.0, 1.0, 1.0, 1.0, //white
-                0.0, 0.0, 1.0, 1.0, // dark blue
-                0.0, 1.0, 1.0, 1.0, // cyan
-                0.0, 0.0, 1.0, 1.0 // blue
+                1.0, 0.0, 0, 1.0, // dark blue
+                1.0, 1.0, 1.0, 1.0, // cyan
+                1.0, 0.0, 1.0, 1.0 // blue
             ];
             squareVerticesColorBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesColorBuffer);
@@ -1057,7 +1057,7 @@ var theGame = (function(){
             gl.clear(gl.COLOR_BUFFER_BIT);
 
             //different from gl-matrix 1.0
-            mat4.perspective(45, gl.viewportWidth/gl.viewportHeight, 0.1, 100.0, pMatrix);
+            mat4.perspective(35, gl.viewportWidth/gl.viewportHeight, 0.1, 100.0, pMatrix);
 
             mat4.identity(mvMatrix);
 
@@ -1180,8 +1180,8 @@ var theGame = (function(){
         }			
 	
         function initShaders() {
-            var fragmentShaderSRC = $('#' + 'shader-fs').html(),
-                vertexShaderSRC = $('#' + 'shader-vs').html();
+            var fragmentShaderSRC = document.getElementById('#shader-fs').innerHTML, //$('shader-fs').html(),
+                vertexShaderSRC = document.getElementById('#shader-vs').innerHTML; //$('#' + 'shader-vs').html();
             
             setupShaders(fragmentShaderSRC, vertexShaderSRC);
         }
