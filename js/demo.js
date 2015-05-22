@@ -16,7 +16,7 @@ var theGame = (function(){
 
 
     var canvasGL = document.createElement( 'canvas');
-    canvas.setAttribute('screencanvas', '1');
+    canvasGL.setAttribute('screencanvas', '1');
     canvasGL.width = window.innerWidth ;
     canvasGL.height = window.innerHeight;
     canvasGL.id = 'canvas_3d';
