@@ -28,3 +28,4 @@ var webgl_run = li_callback("theGame.loadWebglTest();");
 
 var webgl_rotate_run = li_callback("theGame.loadWebglRotateTest();");
 
+var webgl_cube_demo2_run = li_callback("theGame.loadWebglCubeDemo2();");
